@@ -34,10 +34,6 @@ public class CacheLockAcquiringTaskExecuter implements TaskExecuter {
     }
 
     public void execute(final TaskInternal task, final TaskStateInternal state) {
-        cacheAccess.useCache(String.format("execute %s", task), new Runnable() {
-            public void run() {
-                executer.execute(task, state);
-            }
-        });
+        executer.execute(task, state);
     }
 }

@@ -23,7 +23,7 @@ import java.util.TreeSet;
 
 class TaskInfo implements Comparable<TaskInfo> {
 
-    private enum TaskExecutionState {
+    enum TaskExecutionState {
         NOT_REQUIRED, READY, EXECUTING, EXECUTED, SKIPPED
     }
 
@@ -40,6 +40,10 @@ class TaskInfo implements Comparable<TaskInfo> {
 
     public TaskInternal getTask() {
         return task;
+    }
+
+    public TaskExecutionState getState() {
+        return state;
     }
 
     public boolean isReady() {
