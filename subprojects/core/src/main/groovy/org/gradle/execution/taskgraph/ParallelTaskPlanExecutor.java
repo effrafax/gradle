@@ -21,6 +21,9 @@ import org.gradle.api.Task;
 import org.gradle.api.execution.TaskExecutionListener;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.internal.concurrent.DefaultExecutorFactory;
+import org.gradle.internal.concurrent.ExecutorFactory;
+import org.gradle.internal.concurrent.StoppableExecutor;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -32,7 +35,6 @@ import static org.gradle.util.Clock.prettyTime;
 class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
     private static final Logger LOGGER = Logging.getLogger(ParallelTaskPlanExecutor.class);
 
-    private final List<Thread> executorThreads = new ArrayList<Thread>();
     private final int executorCount;
 
     public ParallelTaskPlanExecutor(int numberOfParallelExecutors) {
@@ -40,28 +42,32 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
             throw new IllegalArgumentException("Not a valid number of parallel executors: " + numberOfParallelExecutors);
         }
 
-        LOGGER.info("Using {} parallel executor threads", numberOfParallelExecutors);
-
         this.executorCount = numberOfParallelExecutors;
     }
 
     public void process(final TaskExecutionPlan taskExecutionPlan, final TaskExecutionListener taskListener) {
-        doProcess(taskExecutionPlan, taskListener);
-        taskExecutionPlan.awaitCompletion();
+        DefaultExecutorFactory factory = new DefaultExecutorFactory();
+        try {
+            doProcess(taskExecutionPlan, taskListener, factory);
+            // TODO This needs to wait until all tasks have been executed, not just started....
+            taskExecutionPlan.awaitCompletion();
+        } finally {
+            factory.stop();
+        }
     }
 
-    private void doProcess(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener) {
+    private void doProcess(TaskExecutionPlan taskExecutionPlan, TaskExecutionListener taskListener, ExecutorFactory factory) {
         List<Project> projects = getAllProjects(taskExecutionPlan);
         int numExecutors = Math.min(executorCount, projects.size());
+        numExecutors = Math.min(numExecutors, 4);
+
+        LOGGER.info("Using {} parallel executor threads", numExecutors);
 
         for (int i = 0; i < numExecutors; i++) {
             TaskExecutorWorker worker = new TaskExecutorWorker(taskExecutionPlan, taskListener);
-            executorThreads.add(new Thread(worker));
-        }
-
-        for (Thread executorThread : executorThreads) {
+            StoppableExecutor executor = factory.create("Task worker " + (i+1));
             // TODO A bunch more stuff to contextualise the thread
-            executorThread.start();
+            executor.execute(worker);
         }
     }
 
@@ -97,7 +103,7 @@ class ParallelTaskPlanExecutor extends DefaultTaskPlanExecutor {
             final String taskPath = taskInfo.getTask().getPath();
             LOGGER.info(taskPath + " (" + Thread.currentThread() + " - start");
             final long start = System.currentTimeMillis();
-                    processTask(taskInfo, taskExecutionPlan, taskListener);
+            processTask(taskInfo, taskExecutionPlan, taskListener);
             busyMs += System.currentTimeMillis() - start;
 
             LOGGER.info(taskPath + " (" + Thread.currentThread() + ") - complete");
