@@ -19,6 +19,9 @@ import org.gradle.internal.Factory;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.messaging.serialize.DefaultSerializer;
 import org.gradle.cache.PersistentIndexedCache;
+import org.gradle.messaging.serialize.Serializer;
+import org.gradle.messaging.serialize.kryo.KryoSerializer;
+import org.gradle.messaging.serialize.kryo.SimpleKryoSerializer;
 
 import java.io.File;
 import java.io.Serializable;
@@ -31,7 +34,7 @@ public class CacheBackedTaskHistoryRepository implements TaskHistoryRepository {
     private final TaskArtifactStateCacheAccess cacheAccess;
     private final FileSnapshotRepository snapshotRepository;
     private final PersistentIndexedCache<String, TaskHistory> taskHistoryCache;
-    private final DefaultSerializer<TaskHistory> serializer = new DefaultSerializer<TaskHistory>();
+    private final Serializer<TaskHistory> serializer = new SimpleKryoSerializer<TaskHistory>();
 
     public CacheBackedTaskHistoryRepository(TaskArtifactStateCacheAccess cacheAccess, FileSnapshotRepository snapshotRepository) {
         this.cacheAccess = cacheAccess;
@@ -83,13 +86,13 @@ public class CacheBackedTaskHistoryRepository implements TaskHistoryRepository {
     }
 
     private TaskHistory loadHistory(TaskInternal task) {
-        ClassLoader original = serializer.getClassLoader();
-        serializer.setClassLoader(task.getClass().getClassLoader());
+//        ClassLoader original = serializer.getClassLoader();
+//        serializer.setClassLoader(task.getClass().getClassLoader());
         try {
             TaskHistory history = taskHistoryCache.get(task.getPath());
             return history == null ? new TaskHistory() : history;
         } finally {
-            serializer.setClassLoader(original);
+//            serializer.setClassLoader(original);
         }
     }
 

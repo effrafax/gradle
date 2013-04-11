@@ -19,6 +19,7 @@ package org.gradle.api.internal.changedetection.state;
 import org.gradle.api.file.FileCollection;
 import org.gradle.cache.PersistentIndexedCache;
 import org.gradle.internal.id.IdGenerator;
+import org.gradle.messaging.serialize.kryo.SimpleKryoSerializer;
 import org.gradle.util.ChangeListener;
 import org.gradle.util.DiffUtil;
 import org.gradle.util.NoOpChangeListener;
@@ -47,7 +48,7 @@ public class OutputFilesSnapshotter implements FileSnapshotter {
                                   TaskArtifactStateCacheAccess cacheAccess) {
         this.snapshotter = snapshotter;
         this.idGenerator = idGenerator;
-        dirIdentiferCache = cacheAccess.createCache("outputFileStates", String.class, Long.class);
+        dirIdentiferCache = cacheAccess.createCache("outputFileStates", String.class, Long.class, new SimpleKryoSerializer<Long>());
     }
 
     public FileCollectionSnapshot emptySnapshot() {

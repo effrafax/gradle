@@ -16,12 +16,13 @@
 package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.cache.PersistentIndexedCache;
+import org.gradle.messaging.serialize.kryo.SimpleKryoSerializer;
 
 public class CacheBackedFileSnapshotRepository implements FileSnapshotRepository {
     private final PersistentIndexedCache<Object, Object> cache;
 
     public CacheBackedFileSnapshotRepository(TaskArtifactStateCacheAccess cacheAccess) {
-        cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class);
+        cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class, new SimpleKryoSerializer<Object>());
     }
 
     public Long add(FileCollectionSnapshot snapshot) {
