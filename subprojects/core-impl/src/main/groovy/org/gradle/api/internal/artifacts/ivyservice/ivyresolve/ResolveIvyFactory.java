@@ -70,6 +70,7 @@ public class ResolveIvyFactory {
         ResolveData resolveData = createResolveData(ivy, configuration.getName());
         IvyContextualiser contextualiser = new IvyContextualiser(ivy, resolveData);
 
+        InMemoryDescriptorCache descriptorCache = new InMemoryDescriptorCache();
         for (ResolutionAwareRepository repository : repositories) {
             IvyAwareModuleVersionRepository moduleVersionRepository = repository.createResolver();
             moduleVersionRepository.setSettings(ivySettings);
@@ -87,6 +88,7 @@ public class ResolveIvyFactory {
                 localAwareRepository = new IvyDynamicResolveModuleVersionRepository(localAwareRepository);
             }
             localAwareRepository = contextualiser.contextualise(LocalAwareModuleVersionRepository.class, localAwareRepository);
+            localAwareRepository = descriptorCache.cached(localAwareRepository);
             userResolverChain.add(localAwareRepository);
         }
 
