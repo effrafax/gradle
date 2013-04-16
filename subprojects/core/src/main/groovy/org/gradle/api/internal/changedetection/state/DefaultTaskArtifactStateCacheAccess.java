@@ -72,14 +72,14 @@ public class DefaultTaskArtifactStateCacheAccess implements TaskArtifactStateCac
     }
 
     public <T> T useCache(String operationDisplayName, Factory<? extends T> action) {
-        return getCache().useCache(operationDisplayName, action);
+        return action.create();
     }
 
     public void useCache(String operationDisplayName, Runnable action) {
-        getCache().useCache(operationDisplayName, action);
+        action.run();
     }
 
     public void longRunningOperation(String operationDisplayName, Runnable action) {
-        getCache().longRunningOperation(operationDisplayName, action);
+        action.run();
     }
 }
