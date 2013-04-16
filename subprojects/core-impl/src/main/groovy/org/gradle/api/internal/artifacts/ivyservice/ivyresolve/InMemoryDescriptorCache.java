@@ -32,29 +32,34 @@ public class InMemoryDescriptorCache {
 
     private final static Logger LOG = Logging.getLogger(InMemoryDescriptorCache.class);
 
-    private Map<String, CachedRepository> repos = new MapMaker().softValues().makeMap();
+    private Map<String, DataCache> cachePerRepo = new MapMaker().softValues().makeMap();
 
     public LocalAwareModuleVersionRepository cached(LocalAwareModuleVersionRepository input) {
-        CachedRepository cachedRepository = repos.get(input.getId());
-        if (cachedRepository == null) {
+//        return input;
+        DataCache dataCache = cachePerRepo.get(input.getId());
+        if (dataCache == null) {
             LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
-            cachedRepository = new CachedRepository(input);
-            repos.put(input.getId(), cachedRepository);
+            dataCache = new DataCache();
+            cachePerRepo.put(input.getId(), new DataCache());
         } else {
-            LOG.debug("Reusing in-memory cache for repo '{}' [{}] is already cached in memory.", input.getName(), input.getId());
+            LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
         }
-        return cachedRepository;
+        return new CachedRepository(dataCache, input);
+    }
+
+    private class DataCache {
+        private final Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> localDescriptors = new MapMaker().softValues().makeMap();
+        private final Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> descriptors = new MapMaker().softValues().makeMap();
+        private final Map<Artifact, File> artifacts = new MapMaker().softValues().makeMap();
     }
 
     private class CachedRepository implements LocalAwareModuleVersionRepository {
-        private LocalAwareModuleVersionRepository delegate;
         private final Object lock = new Object();
+        private DataCache cache;
+        private LocalAwareModuleVersionRepository delegate;
 
-        private Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> localDescriptorsCache = new MapMaker().makeMap();
-        private Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> descriptorsCache = new MapMaker().makeMap();
-        private Map<Artifact, File> artifactsCache = new MapMaker().makeMap();
-
-        public CachedRepository(LocalAwareModuleVersionRepository delegate) {
+        public CachedRepository(DataCache cache, LocalAwareModuleVersionRepository delegate) {
+            this.cache = cache;
             this.delegate = delegate;
         }
 
@@ -69,11 +74,11 @@ public class InMemoryDescriptorCache {
         public void getLocalDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
             synchronized (lock) {
                 ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-                BuildableModuleVersionMetaData fromCache = localDescriptorsCache.get(id);
+                BuildableModuleVersionMetaData fromCache = cache.localDescriptors.get(id);
                 if (fromCache == null) {
                     delegate.getLocalDependency(dependency, result);
                     if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
-                        localDescriptorsCache.put(result.getId(), result);
+                        cache.localDescriptors.put(result.getId(), result);
                     }
                 } else {
                     result.resolved(id, fromCache.getDescriptor(), fromCache.isChanging(), fromCache.getModuleSource());
@@ -84,11 +89,11 @@ public class InMemoryDescriptorCache {
         public void getDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
             synchronized (lock) {
                 ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-                BuildableModuleVersionMetaData fromCache = descriptorsCache.get(id);
+                BuildableModuleVersionMetaData fromCache = cache.descriptors.get(id);
                 if (fromCache == null) {
                     delegate.getDependency(dependency, result);
                     if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
-                        descriptorsCache.put(result.getId(), result);
+                        cache.descriptors.put(result.getId(), result);
                     }
                 } else {
                     result.resolved(id, fromCache.getDescriptor(), fromCache.isChanging(), fromCache.getModuleSource());
@@ -98,11 +103,11 @@ public class InMemoryDescriptorCache {
 
         public void resolve(Artifact artifact, BuildableArtifactResolveResult result, ModuleSource moduleSource) {
             synchronized (lock) {
-                File fromCache = artifactsCache.get(artifact);
+                File fromCache = cache.artifacts.get(artifact);
                 if (fromCache == null) {
                     delegate.resolve(artifact, result, moduleSource);
                     if (result.getFailure() != null) {
-                        artifactsCache.put(artifact, result.getFile());
+                        cache.artifacts.put(artifact, result.getFile());
                     }
                 } else {
                     result.resolved(fromCache);
