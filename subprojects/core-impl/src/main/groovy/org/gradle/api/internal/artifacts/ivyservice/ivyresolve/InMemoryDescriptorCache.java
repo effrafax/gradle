@@ -16,37 +16,25 @@
 
 package org.gradle.api.internal.artifacts.ivyservice.ivyresolve;
 
-import com.google.common.collect.MapMaker;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.internal.artifacts.ivyservice.BuildableArtifactResolveResult;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
 
-import java.io.File;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier.newId;
 
 public class InMemoryDescriptorCache {
 
-    private final static Logger LOG = Logging.getLogger(InMemoryDescriptorCache.class);
-
-    private Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> localDescriptorsCache = new MapMaker().softValues().makeMap();
-    private Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> descriptorsCache = new MapMaker().softValues().makeMap();
-    private Map<Artifact, File> artifactsCache = new MapMaker().softValues().makeMap();
-    private Map<String, CachedRepository> repos = new MapMaker().softValues().makeMap();
+    private static Map localDescriptorsCache = new HashMap();
+    private static Map descriptorsCache = new HashMap();
+    private static Map artifactsCache = new HashMap();
 
     public LocalAwareModuleVersionRepository cached(LocalAwareModuleVersionRepository input) {
-        CachedRepository cachedRepository = repos.get(input.getId());
-        if (cachedRepository == null) {
-            LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
-            cachedRepository = new CachedRepository(input);
-            repos.put(input.getId(), cachedRepository);
-        } else {
-            LOG.debug("Reusing in-memory cache for repo '{}' [{}] is already cached in memory.", input.getName(), input.getId());
-        }
-        return cachedRepository;
+//        return input;
+        return new CachedRepository(input);
     }
 
     private class CachedRepository implements LocalAwareModuleVersionRepository {
@@ -58,7 +46,7 @@ public class InMemoryDescriptorCache {
 
         public void getLocalDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
             ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-            BuildableModuleVersionMetaData fromCache = localDescriptorsCache.get(id);
+            BuildableModuleVersionMetaData fromCache = (BuildableModuleVersionMetaData) descriptorsCache.get(id);
             if (fromCache == null) {
                 delegate.getLocalDependency(dependency, result);
                 if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
@@ -79,7 +67,7 @@ public class InMemoryDescriptorCache {
 
         public void getDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
             ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-            BuildableModuleVersionMetaData fromCache = descriptorsCache.get(id);
+            BuildableModuleVersionMetaData fromCache = (BuildableModuleVersionMetaData) descriptorsCache.get(id);
             if (fromCache == null) {
                 delegate.getDependency(dependency, result);
                 if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
@@ -91,14 +79,14 @@ public class InMemoryDescriptorCache {
         }
 
         public void resolve(Artifact artifact, BuildableArtifactResolveResult result, ModuleSource moduleSource) {
-            File fromCache = artifactsCache.get(artifact);
+            BuildableArtifactResolveResult fromCache = (BuildableArtifactResolveResult) artifactsCache.get(artifact);
             if (fromCache == null) {
                 delegate.resolve(artifact, result, moduleSource);
                 if (result.getFailure() != null) {
-                    artifactsCache.put(artifact, result.getFile());
+                    artifactsCache.put(artifact, result);
                 }
             } else {
-                result.resolved(fromCache);
+                result.resolved(fromCache.getFile());
             }
         }
     }
