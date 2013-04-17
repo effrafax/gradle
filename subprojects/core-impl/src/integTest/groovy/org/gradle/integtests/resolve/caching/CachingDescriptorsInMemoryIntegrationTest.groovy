@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-
 package org.gradle.integtests.resolve.caching
 
-import org.gradle.integtests.fixtures.AbstractIntegrationSpec
+import org.gradle.integtests.fixtures.AbstractDependencyResolutionTest
 import org.gradle.test.fixtures.ivy.IvyFileRepository
+import spock.lang.Ignore
 
-class CachingDescriptorsInMemoryIntegrationTest extends AbstractIntegrationSpec {
+class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolutionTest {
 
     def "descriptor and artifact is cached in memory"() {
         given:
@@ -114,5 +114,92 @@ class CachingDescriptorsInMemoryIntegrationTest extends AbstractIntegrationSpec 
         output.contains ':resolveConf [lib-1.0.jar]'
         //uses different repo that does not contain this dependency
         failure.assertResolutionFailure(":impl:conf").assertHasCause("Could not find org:lib:1.0")
+    }
+
+    @Ignore //trying to figure out how to cover this
+    def "snapshot versions are only cached per build"() {
+        given:
+        file("provider/build.gradle") << """
+            apply plugin: 'java'
+            apply plugin: 'maven'
+            group = 'org'
+            archivesBaseName = 'provider'
+            version = '1.0-SNAPSHOT'
+            repositories { maven { url "$mavenRepo.uri" } }
+        """
+        file("provider/src/main/java/Name.java") << """public class Name {
+            public String toString() { return "foo"; }
+        }"""
+
+        when:
+        inDirectory "provider"; run "install"
+
+        then:
+        noExceptionThrown()
+
+        when:
+        file("consumer/build.gradle") << """
+            buildscript {
+                repositories { mavenLocal() }
+                dependencies { classpath 'org:provider:1.0-SNAPSHOT' }
+            }
+            task printName << { println "Name: " + new Name() }
+        """
+
+        inDirectory("consumer"); run "printName"
+
+        then:
+        output.contains "Name: foo"
+
+        when:
+        //change the class
+        file("provider/src/main/java/Name.java").text = """public class Name {
+            public String toString() { return "updated"; }
+        }"""
+
+        //add new dependency
+        mavenRepo.module("org", "lib").publish()
+        file("provider/build.gradle") << "dependencies { compile 'org:lib:1.0' } "
+
+        inDirectory("provider"); run "install"
+
+        and:
+        inDirectory("consumer"); run "printName"
+
+        then:
+        output.contains "Name: updated" //uses updated artifact
+
+        when:
+        inDirectory("consumer"); run "dependencies"
+
+        then:
+        output.contains "org:lib:1.0" //uses updated descriptor
+    }
+
+    def "cache expires at the end of build"() {
+        given:
+        ivyRepo.module("org", "dependency").publish()
+        ivyRepo.module("org", "lib").publish()
+
+        file("build.gradle") << """
+            configurations {
+                configurations { conf }
+                repositories { ivy { url "${ivyRepo.uri}" } }
+                dependencies { conf 'org:lib:1.0' }
+            }
+        """
+
+        when:
+        run "dependencies", "--configuration", "conf"
+
+        then:
+        !output.contains("org:dependency:1.0")
+
+        when:
+        ivyRepo.module("org", "lib").dependsOn("org", "dependency", "1.0").publish()
+        run "dependencies", "--configuration", "conf"
+
+        then:
+        output.contains("org:dependency:1.0")
     }
 }

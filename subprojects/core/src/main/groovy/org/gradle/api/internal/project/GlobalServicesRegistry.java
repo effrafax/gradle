@@ -112,10 +112,4 @@ public class GlobalServicesRegistry extends DefaultServiceRegistry {
     protected FileLockManager createFileLockManager() {
         return new DefaultFileLockManager(new DefaultProcessMetaDataProvider(get(ProcessEnvironment.class)));
     }
-
-    protected GlobalDependencyManagementServices createGlobalDependencyManagementServices() {
-        ClassLoader coreImplClassLoader = get(ClassLoaderRegistry.class).getCoreImplClassLoader();
-        ServiceLocator serviceLocator = new ServiceLocator(coreImplClassLoader);
-        return serviceLocator.getFactory(GlobalDependencyManagementServices.class).newInstance();
-    }
 }
