@@ -14,10 +14,7 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.changedetection.rules;
-
-public interface UpToDateChangeListener {
-    void accept(TaskStateChange change);
-
-    boolean isAccepting();
-}
+/**
+ * API classes for implementing incremental tasks.
+ */
+package org.gradle.api.tasks.incremental;

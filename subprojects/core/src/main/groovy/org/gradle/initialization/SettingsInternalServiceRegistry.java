@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal;
+package org.gradle.initialization;
 
+import org.gradle.api.internal.DependencyInjectingInstantiator;
+import org.gradle.api.internal.SettingsInternal;
 import org.gradle.api.internal.file.BaseDirFileResolver;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.plugins.DefaultPluginContainer;
@@ -27,10 +29,10 @@ import org.gradle.internal.nativeplatform.filesystem.FileSystem;
 import org.gradle.internal.service.DefaultServiceRegistry;
 import org.gradle.internal.service.ServiceRegistry;
 
-public class SettingsInternallServiceRegistry extends DefaultServiceRegistry implements ServiceRegistryFactory {
+public class SettingsInternalServiceRegistry extends DefaultServiceRegistry implements ServiceRegistryFactory {
     private final SettingsInternal settings;
 
-    public SettingsInternallServiceRegistry(ServiceRegistry parent, final SettingsInternal settings) {
+    public SettingsInternalServiceRegistry(ServiceRegistry parent, final SettingsInternal settings) {
         super(parent);
         this.settings = settings;
     }
@@ -43,11 +45,15 @@ public class SettingsInternallServiceRegistry extends DefaultServiceRegistry imp
         return new BaseDirFileResolver(get(FileSystem.class), settings.getSettingsDir());
     }
 
-        protected PluginRegistry createPluginRegistry() {
-            return new DefaultPluginRegistry(settings.getClassLoader(), new DependencyInjectingInstantiator(this));
-        }
+    protected PluginRegistry createPluginRegistry() {
+        return new DefaultPluginRegistry(settings.getClassLoader(), new DependencyInjectingInstantiator(this));
+    }
 
     protected PluginContainer createPluginContainer() {
-            return new DefaultPluginContainer(get(PluginRegistry.class), settings);
-        }
+        return new DefaultPluginContainer(get(PluginRegistry.class), settings);
+    }
+
+    protected IProjectDescriptorRegistry createIProjectDescriptorRegistry() {
+        return new DefaultProjectDescriptorRegistry();
+    }
 }

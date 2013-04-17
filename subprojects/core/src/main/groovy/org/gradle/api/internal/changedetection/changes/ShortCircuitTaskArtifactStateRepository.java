@@ -21,7 +21,8 @@ import org.gradle.api.internal.TaskExecutionHistory;
 import org.gradle.api.internal.TaskInternal;
 import org.gradle.api.internal.changedetection.TaskArtifactState;
 import org.gradle.api.internal.changedetection.TaskArtifactStateRepository;
-import org.gradle.api.tasks.TaskInputChanges;
+import org.gradle.api.tasks.incremental.IncrementalTaskInputs;
+import org.gradle.internal.reflect.Instantiator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +31,11 @@ public class ShortCircuitTaskArtifactStateRepository implements TaskArtifactStat
 
     private final StartParameter startParameter;
     private final TaskArtifactStateRepository repository;
+    private final Instantiator instantiator;
 
-    public ShortCircuitTaskArtifactStateRepository(StartParameter startParameter, TaskArtifactStateRepository repository) {
+    public ShortCircuitTaskArtifactStateRepository(StartParameter startParameter, Instantiator instantiator, TaskArtifactStateRepository repository) {
         this.startParameter = startParameter;
+        this.instantiator = instantiator;
         this.repository = repository;
     }
 
@@ -53,7 +56,7 @@ public class ShortCircuitTaskArtifactStateRepository implements TaskArtifactStat
         return state;
     }
 
-    private static class RerunTaskArtifactState implements TaskArtifactState {
+    private class RerunTaskArtifactState implements TaskArtifactState {
         private final TaskArtifactState delegate;
         private final TaskInternal task;
 
@@ -66,8 +69,8 @@ public class ShortCircuitTaskArtifactStateRepository implements TaskArtifactStat
             return false;
         }
 
-        public TaskInputChanges getInputChanges() {
-            return new RebuildTaskInputChanges(task);
+        public IncrementalTaskInputs getInputChanges() {
+            return instantiator.newInstance(RebuildIncrementalTaskInputs.class, task);
         }
 
         public TaskExecutionHistory getExecutionHistory() {
