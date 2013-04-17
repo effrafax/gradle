@@ -8,7 +8,7 @@ Faster builds, especially with hot daemon
 
 ### Sad day cases
 
-In what ways can things go wrong? What will the user see when things do go wrong?
+-someone tinkers with the artifact cache (deletes file, etc) while the daemon has hot cache
 
 ### Test coverage
 

@@ -40,7 +40,7 @@ public class InMemoryDescriptorCache {
         if (dataCache == null) {
             LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
             dataCache = new DataCache();
-            cachePerRepo.put(input.getId(), new DataCache());
+            cachePerRepo.put(input.getId(), dataCache);
         } else {
             LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
         }
@@ -106,7 +106,7 @@ public class InMemoryDescriptorCache {
                 File fromCache = cache.artifacts.get(artifact);
                 if (fromCache == null) {
                     delegate.resolve(artifact, result, moduleSource);
-                    if (result.getFailure() != null) {
+                    if (result.getFailure() == null) {
                         cache.artifacts.put(artifact, result.getFile());
                     }
                 } else {
