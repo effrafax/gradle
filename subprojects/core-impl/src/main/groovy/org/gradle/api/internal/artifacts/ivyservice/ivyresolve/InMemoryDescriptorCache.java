@@ -68,11 +68,18 @@ public class InMemoryDescriptorCache {
         private final ModuleVersionIdentifier id;
 
         public CachedResult(BuildableModuleVersionMetaData result) {
-            this.id = result.getId();
             this.state = result.getState();
-            this.moduleDescriptor = result.getDescriptor();
-            this.isChanging = result.isChanging();
-            this.moduleSource = result.getModuleSource();
+            if (state == Resolved) {
+                this.id = result.getId();
+                this.moduleDescriptor = result.getDescriptor();
+                this.isChanging = result.isChanging();
+                this.moduleSource = result.getModuleSource();
+            } else {
+                this.id = null;
+                this.moduleDescriptor = null;
+                this.isChanging = false;
+                this.moduleSource = null;
+            }
         }
 
         private boolean isCacheable() {
@@ -80,6 +87,7 @@ public class InMemoryDescriptorCache {
         }
 
         public void supply(BuildableModuleVersionMetaData result) {
+            assert isCacheable() : "Results are not cacheable, cannot supply the results.";
             if (state == Resolved) {
                 result.resolved(id, moduleDescriptor, isChanging, moduleSource);
             } else if (state == Missing) {
