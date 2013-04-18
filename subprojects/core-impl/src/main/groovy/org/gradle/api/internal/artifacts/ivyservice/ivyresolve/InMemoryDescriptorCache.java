@@ -26,6 +26,7 @@ import org.gradle.api.internal.artifacts.DefaultArtifactIdentifier;
 import org.gradle.api.internal.artifacts.ivyservice.BuildableArtifactResolveResult;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
+import org.gradle.internal.Stoppable;
 
 import java.io.File;
 import java.util.HashMap;
@@ -35,23 +36,45 @@ import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableM
 import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.ProbablyMissing;
 import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.Resolved;
 
-public class InMemoryDescriptorCache {
+public class InMemoryDescriptorCache implements Stoppable {
 
     private final static Logger LOG = Logging.getLogger(InMemoryDescriptorCache.class);
 
     private Map<String, DataCache> cachePerRepo = new MapMaker().softValues().makeMap();
 
+    private final Stats stats = new Stats();
+
     public LocalAwareModuleVersionRepository cached(LocalAwareModuleVersionRepository input) {
 //        return input;
         DataCache dataCache = cachePerRepo.get(input.getId());
+        stats.reposWrapped++;
         if (dataCache == null) {
             LOG.debug("Creating new in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
             dataCache = new DataCache();
+            stats.cacheInstances++;
             cachePerRepo.put(input.getId(), dataCache);
         } else {
             LOG.debug("Reusing in-memory cache for repo '{}' [{}].", input.getName(), input.getId());
         }
         return new CachedRepository(dataCache, input);
+    }
+
+    public void stop() {
+        cachePerRepo.clear();
+        LOG.info("In-memory dependency metadata cache closed. {}", stats);
+    }
+
+    private class Stats {
+        private int cacheInstances;
+        private int reposWrapped;
+        private int localMetadataCached;
+        private int metadataCached;
+        private int artifactsCached;
+        public String toString() {
+            return String.format(
+                    "Repos cached: %s, cache instances: %s, modules served from cache: %s (local %s), artifacts: %s",
+                    reposWrapped, cacheInstances, metadataCached, localMetadataCached, artifactsCached);
+        }
     }
 
     private class DataCache {
@@ -124,6 +147,7 @@ public class InMemoryDescriptorCache {
                     cache.localDescriptors.put(dependency.getRequested(), cachedResult);
                 }
             } else {
+                stats.localMetadataCached++;
                 fromCache.supply(result);
             }
         }
@@ -137,6 +161,7 @@ public class InMemoryDescriptorCache {
                     cache.descriptors.put(dependency.getRequested(), cachedResult);
                 }
             } else {
+                stats.metadataCached++;
                 fromCache.supply(result);
             }
         }
@@ -150,6 +175,7 @@ public class InMemoryDescriptorCache {
                     cache.artifacts.put(id, result.getFile());
                 }
             } else {
+                stats.artifactsCached++;
                 result.resolved(fromCache);
             }
         }
