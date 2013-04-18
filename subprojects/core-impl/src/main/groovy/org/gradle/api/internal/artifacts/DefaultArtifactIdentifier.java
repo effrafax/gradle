@@ -15,8 +15,11 @@
  */
 package org.gradle.api.internal.artifacts;
 
+import org.apache.ivy.core.module.descriptor.Artifact;
 import org.gradle.api.artifacts.ArtifactIdentifier;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
+
+import static org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier.newId;
 
 public class DefaultArtifactIdentifier implements ArtifactIdentifier {
     private final ModuleVersionIdentifier moduleVersionIdentifier;
@@ -25,12 +28,16 @@ public class DefaultArtifactIdentifier implements ArtifactIdentifier {
     private final String extension;
     private final String classifier;
 
-    public DefaultArtifactIdentifier(ModuleVersionIdentifier moduleVersionIdentifier, String name, String type, String extension, String classifier) {
+    DefaultArtifactIdentifier(ModuleVersionIdentifier moduleVersionIdentifier, String name, String type, String extension, String classifier) {
         this.moduleVersionIdentifier = moduleVersionIdentifier;
         this.name = name;
         this.type = type;
         this.extension = extension;
         this.classifier = classifier;
+    }
+
+    public DefaultArtifactIdentifier(Artifact artifact) {
+        this(newId(artifact.getModuleRevisionId()), artifact.getName(), artifact.getType(), artifact.getExt(), artifact.getExtraAttribute("classifier"));
     }
 
     public ModuleVersionIdentifier getModuleVersionIdentifier() {
