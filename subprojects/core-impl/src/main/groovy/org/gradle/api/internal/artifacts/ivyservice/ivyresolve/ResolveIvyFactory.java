@@ -40,13 +40,13 @@ public class ResolveIvyFactory {
     private final CacheLockingManager cacheLockingManager;
     private final StartParameterResolutionOverride startParameterResolutionOverride;
     private final TimeProvider timeProvider;
-    private InMemoryDescriptorCache descriptorCache;
+    private InMemoryDependencyMetadataCache inMemoryCache;
 
     public ResolveIvyFactory(IvyFactory ivyFactory, SettingsConverter settingsConverter,
                              ModuleResolutionCache moduleResolutionCache, ModuleDescriptorCache moduleDescriptorCache,
                              CachedArtifactIndex artifactAtRepositoryCachedResolutionIndex,
                              CacheLockingManager cacheLockingManager, StartParameterResolutionOverride startParameterResolutionOverride,
-                             TimeProvider timeProvider, InMemoryDescriptorCache descriptorCache) {
+                             TimeProvider timeProvider, InMemoryDependencyMetadataCache inMemoryCache) {
         this.ivyFactory = ivyFactory;
         this.settingsConverter = settingsConverter;
         this.moduleResolutionCache = moduleResolutionCache;
@@ -55,7 +55,7 @@ public class ResolveIvyFactory {
         this.cacheLockingManager = cacheLockingManager;
         this.startParameterResolutionOverride = startParameterResolutionOverride;
         this.timeProvider = timeProvider;
-        this.descriptorCache = descriptorCache;
+        this.inMemoryCache = inMemoryCache;
     }
 
     public IvyAdapter create(ConfigurationInternal configuration, Iterable<? extends ResolutionAwareRepository> repositories) {
@@ -89,7 +89,7 @@ public class ResolveIvyFactory {
                 localAwareRepository = new IvyDynamicResolveModuleVersionRepository(localAwareRepository);
             }
             localAwareRepository = contextualiser.contextualise(LocalAwareModuleVersionRepository.class, localAwareRepository);
-            localAwareRepository = descriptorCache.cached(localAwareRepository);
+            localAwareRepository = inMemoryCache.cached(localAwareRepository);
             userResolverChain.add(localAwareRepository);
         }
 

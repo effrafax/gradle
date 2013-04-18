@@ -36,16 +36,18 @@ import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableM
 import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.ProbablyMissing;
 import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.Resolved;
 
-public class InMemoryDescriptorCache implements Stoppable {
+/**
+ * Caches the dependency metadata (descriptors, artifact files) in memory. Uses soft maps to reduce heap pressure.
+ */
+public class InMemoryDependencyMetadataCache implements Stoppable {
 
-    private final static Logger LOG = Logging.getLogger(InMemoryDescriptorCache.class);
+    private final static Logger LOG = Logging.getLogger(InMemoryDependencyMetadataCache.class);
 
     private Map<String, DataCache> cachePerRepo = new MapMaker().softValues().makeMap();
 
     private final Stats stats = new Stats();
 
     public LocalAwareModuleVersionRepository cached(LocalAwareModuleVersionRepository input) {
-//        return input;
         DataCache dataCache = cachePerRepo.get(input.getId());
         stats.reposWrapped++;
         if (dataCache == null) {
@@ -77,6 +79,7 @@ public class InMemoryDescriptorCache implements Stoppable {
         }
     }
 
+    //TODO SF bust to separate classes and add unit test coverage
     private class DataCache {
         private final Map<ModuleVersionSelector, CachedResult> localDescriptors = new HashMap<ModuleVersionSelector, CachedResult>();
         private final Map<ModuleVersionSelector, CachedResult> descriptors = new HashMap<ModuleVersionSelector, CachedResult>();

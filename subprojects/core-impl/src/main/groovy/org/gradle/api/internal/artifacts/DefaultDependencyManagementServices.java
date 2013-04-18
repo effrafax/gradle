@@ -36,7 +36,7 @@ import org.gradle.api.internal.artifacts.dsl.dependencies.ProjectFinder;
 import org.gradle.api.internal.artifacts.ivyservice.*;
 import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.ModuleResolutionCache;
 import org.gradle.api.internal.artifacts.ivyservice.dynamicversions.SingleFileBackedModuleResolutionCache;
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.InMemoryDescriptorCache;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.InMemoryDependencyMetadataCache;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.ResolveIvyFactory;
 import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.StartParameterResolutionOverride;
 import org.gradle.api.internal.artifacts.ivyservice.modulecache.DefaultModuleDescriptorCache;
@@ -265,7 +265,7 @@ public class DefaultDependencyManagementServices extends DefaultServiceRegistry 
                 get(CacheLockingManager.class),
                 startParameterResolutionOverride,
                 get(BuildCommencedTimeProvider.class),
-                get(GlobalDependencyManagementServices.class).get(InMemoryDescriptorCache.class));
+                get(GlobalDependencyManagementServices.class).get(InMemoryDependencyMetadataCache.class));
     }
 
     protected ArtifactDependencyResolver createArtifactDependencyResolver() {

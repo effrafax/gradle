@@ -16,12 +16,12 @@
 
 package org.gradle.api.internal.artifacts;
 
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.InMemoryDescriptorCache;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.InMemoryDependencyMetadataCache;
 import org.gradle.internal.service.DefaultServiceRegistry;
 
 public class DefaultGlobalDependencyManagementServices extends DefaultServiceRegistry implements GlobalDependencyManagementServices {
 
-    protected InMemoryDescriptorCache createInMemoryDescriptorCache() {
-        return new InMemoryDescriptorCache();
+    protected InMemoryDependencyMetadataCache createInMemoryDescriptorCache() {
+        return new InMemoryDependencyMetadataCache();
     }
 }
