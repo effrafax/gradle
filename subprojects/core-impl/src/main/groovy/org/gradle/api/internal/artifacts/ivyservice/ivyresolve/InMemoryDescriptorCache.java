@@ -19,8 +19,10 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve;
 import com.google.common.collect.MapMaker;
 import org.apache.ivy.core.module.descriptor.Artifact;
 import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
+import org.gradle.api.artifacts.ArtifactIdentifier;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
 import org.gradle.api.artifacts.ModuleVersionSelector;
+import org.gradle.api.internal.artifacts.DefaultArtifactIdentifier;
 import org.gradle.api.internal.artifacts.ivyservice.BuildableArtifactResolveResult;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
@@ -53,11 +55,9 @@ public class InMemoryDescriptorCache {
     }
 
     private class DataCache {
-        //BuildableModuleVersionMetaData is mutable - cannot really be used as value (or make a copy of it)
         private final Map<ModuleVersionSelector, CachedResult> localDescriptors = new HashMap<ModuleVersionSelector, CachedResult>();
         private final Map<ModuleVersionSelector, CachedResult> descriptors = new HashMap<ModuleVersionSelector, CachedResult>();
-        //Artifact is mutable - cannot really be used as value
-        private final Map<Artifact, File> artifacts = new HashMap<Artifact, File>();
+        private final Map<ArtifactIdentifier, File> artifacts = new HashMap<ArtifactIdentifier, File>();
     }
 
     private class CachedResult {
@@ -134,12 +134,12 @@ public class InMemoryDescriptorCache {
         }
 
         public void resolve(Artifact artifact, BuildableArtifactResolveResult result, ModuleSource moduleSource) {
-            //use DefaultArtifactIdentifier - (add hashCode(), equals())
-            File fromCache = cache.artifacts.get(artifact);
+            ArtifactIdentifier id = new DefaultArtifactIdentifier(artifact);
+            File fromCache = cache.artifacts.get(id);
             if (fromCache == null) {
                 delegate.resolve(artifact, result, moduleSource);
                 if (result.getFailure() == null) {
-                    cache.artifacts.put(artifact, result.getFile());
+                    cache.artifacts.put(id, result.getFile());
                 }
             } else {
                 result.resolved(fromCache);
