@@ -26,20 +26,20 @@ class DefaultArtifactIdentifierTest extends Specification {
         def base = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "jar", "")
         def same = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "jar", "")
 
-        def _id = new DefaultArtifactIdentifier(newId("org", "lib", "2.0"), "someArtifact", "jar", "jar", "")
-        def _name = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "foo", "jar", "jar", "")
-        def _type = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "bar", "jar", "")
-        def _extension = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "xxx", "")
-        def _classifier = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "jar", "sources")
+        def badId = new DefaultArtifactIdentifier(newId("org", "lib", "2.0"), "someArtifact", "jar", "jar", "")
+        def badName = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "foo", "jar", "jar", "")
+        def badType = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "bar", "jar", "")
+        def badExtension = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "xxx", "")
+        def badClassifier = new DefaultArtifactIdentifier(newId("org", "lib", "1.0"), "someArtifact", "jar", "jar", "sources")
 
         expect:
         base == same
         same == base
 
-        base != _id
-        base != _name
-        base != _type
-        base != _extension
-        base != _classifier
+        base != badId
+        base != badName
+        base != badType
+        base != badExtension
+        base != badClassifier
     }
 }
