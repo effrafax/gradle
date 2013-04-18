@@ -18,7 +18,9 @@ package org.gradle.api.internal.artifacts.ivyservice.ivyresolve;
 
 import com.google.common.collect.MapMaker;
 import org.apache.ivy.core.module.descriptor.Artifact;
+import org.apache.ivy.core.module.descriptor.ModuleDescriptor;
 import org.gradle.api.artifacts.ModuleVersionIdentifier;
+import org.gradle.api.artifacts.ModuleVersionSelector;
 import org.gradle.api.internal.artifacts.ivyservice.BuildableArtifactResolveResult;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
@@ -27,7 +29,9 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.gradle.api.internal.artifacts.DefaultModuleVersionIdentifier.newId;
+import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.Missing;
+import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.ProbablyMissing;
+import static org.gradle.api.internal.artifacts.ivyservice.ivyresolve.BuildableModuleVersionMetaData.State.Resolved;
 
 public class InMemoryDescriptorCache {
 
@@ -50,14 +54,43 @@ public class InMemoryDescriptorCache {
 
     private class DataCache {
         //BuildableModuleVersionMetaData is mutable - cannot really be used as value (or make a copy of it)
-        private final Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> localDescriptors = new HashMap<ModuleVersionIdentifier, BuildableModuleVersionMetaData>();
-        private final Map<ModuleVersionIdentifier, BuildableModuleVersionMetaData> descriptors = new HashMap<ModuleVersionIdentifier, BuildableModuleVersionMetaData>();
+        private final Map<ModuleVersionSelector, CachedResult> localDescriptors = new HashMap<ModuleVersionSelector, CachedResult>();
+        private final Map<ModuleVersionSelector, CachedResult> descriptors = new HashMap<ModuleVersionSelector, CachedResult>();
         //Artifact is mutable - cannot really be used as value
         private final Map<Artifact, File> artifacts = new HashMap<Artifact, File>();
     }
 
+    private class CachedResult {
+        private final BuildableModuleVersionMetaData.State state;
+        private final ModuleDescriptor moduleDescriptor;
+        private final boolean isChanging;
+        private final ModuleSource moduleSource;
+        private final ModuleVersionIdentifier id;
+
+        public CachedResult(BuildableModuleVersionMetaData result) {
+            this.id = result.getId();
+            this.state = result.getState();
+            this.moduleDescriptor = result.getDescriptor();
+            this.isChanging = result.isChanging();
+            this.moduleSource = result.getModuleSource();
+        }
+
+        private boolean isCacheable() {
+            return state == Missing || state == ProbablyMissing || state == Resolved;
+        }
+
+        public void supply(BuildableModuleVersionMetaData result) {
+            if (state == Resolved) {
+                result.resolved(id, moduleDescriptor, isChanging, moduleSource);
+            } else if (state == Missing) {
+                result.missing();
+            } else if (state == ProbablyMissing) {
+                result.probablyMissing();
+            }
+        }
+    }
+
     private class CachedRepository implements LocalAwareModuleVersionRepository {
-        private final Object lock = new Object();
         private DataCache cache;
         private LocalAwareModuleVersionRepository delegate;
 
@@ -75,30 +108,28 @@ public class InMemoryDescriptorCache {
         }
 
         public void getLocalDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
-            //use selector instead of the id
-            ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-            BuildableModuleVersionMetaData fromCache = cache.localDescriptors.get(id);
+            CachedResult fromCache = cache.localDescriptors.get(dependency.getRequested());
             if (fromCache == null) {
                 delegate.getLocalDependency(dependency, result);
-                if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
-                    cache.localDescriptors.put(result.getId(), result);
+                CachedResult cachedResult = new CachedResult(result);
+                if (cachedResult.isCacheable()) {
+                    cache.localDescriptors.put(dependency.getRequested(), cachedResult);
                 }
-                //missing(), probablyMissing() - also cache
             } else {
-                result.resolved(id, fromCache.getDescriptor(), fromCache.isChanging(), fromCache.getModuleSource());
+                fromCache.supply(result);
             }
         }
 
         public void getDependency(DependencyMetaData dependency, BuildableModuleVersionMetaData result) {
-            ModuleVersionIdentifier id = newId(dependency.getRequested().getGroup(), dependency.getRequested().getName(), dependency.getRequested().getVersion());
-            BuildableModuleVersionMetaData fromCache = cache.descriptors.get(id);
+            CachedResult fromCache = cache.descriptors.get(dependency.getRequested());
             if (fromCache == null) {
                 delegate.getDependency(dependency, result);
-                if (result.getState() == BuildableModuleVersionMetaData.State.Resolved) {
-                    cache.descriptors.put(result.getId(), result);
+                CachedResult cachedResult = new CachedResult(result);
+                if (cachedResult.isCacheable()) {
+                    cache.descriptors.put(dependency.getRequested(), cachedResult);
                 }
             } else {
-                result.resolved(id, fromCache.getDescriptor(), fromCache.isChanging(), fromCache.getModuleSource());
+                fromCache.supply(result);
             }
         }
 
