@@ -265,7 +265,7 @@ public class DefaultDependencyManagementServices extends DefaultServiceRegistry 
                 get(CacheLockingManager.class),
                 startParameterResolutionOverride,
                 get(BuildCommencedTimeProvider.class),
-                get(GlobalDependencyManagementServices.class).get(InMemoryDependencyMetadataCache.class));
+                get(TopLevelDependencyManagementServices.class).get(InMemoryDependencyMetadataCache.class));
     }
 
     protected ArtifactDependencyResolver createArtifactDependencyResolver() {

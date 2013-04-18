@@ -19,7 +19,7 @@ package org.gradle.integtests.resolve.caching
 import org.gradle.integtests.fixtures.AbstractDependencyResolutionTest
 import org.gradle.test.fixtures.ivy.IvyFileRepository
 
-class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolutionTest {
+class CachingDependencyMetadataInMemoryIntegrationTest extends AbstractDependencyResolutionTest {
 
     def "descriptor and artifact is cached in memory"() {
         given:
