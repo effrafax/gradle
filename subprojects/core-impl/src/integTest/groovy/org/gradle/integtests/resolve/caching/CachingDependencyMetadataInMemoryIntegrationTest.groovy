@@ -18,6 +18,7 @@ package org.gradle.integtests.resolve.caching
 
 import org.gradle.integtests.fixtures.AbstractDependencyResolutionTest
 import org.gradle.test.fixtures.ivy.IvyFileRepository
+import spock.lang.Ignore
 
 class CachingDependencyMetadataInMemoryIntegrationTest extends AbstractDependencyResolutionTest {
 
@@ -115,6 +116,7 @@ class CachingDependencyMetadataInMemoryIntegrationTest extends AbstractDependenc
         failure.assertResolutionFailure(":impl:conf").assertHasCause("Could not find org:lib:1.0")
     }
 
+    @Ignore //TODO SF rework or remove this test
     def "snapshot artifacts are only cached per build"() {
         given:
         file("provider/build.gradle") << """
