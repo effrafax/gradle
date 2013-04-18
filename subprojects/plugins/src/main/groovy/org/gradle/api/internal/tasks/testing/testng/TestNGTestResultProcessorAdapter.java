@@ -70,7 +70,22 @@ public class TestNGTestResultProcessorAdapter implements ITestListener, TestNGCo
         TestDescriptorInternal testInternal;
         Object parentId;
         synchronized (lock) {
-            testInternal = new DefaultTestMethodDescriptor(idGenerator.generateId(), iTestResult.getTestClass().getName(), iTestResult.getName());
+            Object[] parameters = iTestResult.getParameters();
+            String name = iTestResult.getName();
+            if (parameters != null && parameters.length > 0) {
+                StringBuilder builder = new StringBuilder(name).append("(");
+                int i = 0;
+                for (Object parameter : parameters) {
+                    builder.append(parameter);
+                    if (++i < parameters.length) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
+                name = builder.toString();
+            }
+
+            testInternal = new DefaultTestMethodDescriptor(idGenerator.generateId(), iTestResult.getTestClass().getName(), name);
             Object oldTestId = tests.put(iTestResult, testInternal.getId());
             assert oldTestId == null : "Apparently some other test has started but it hasn't finished. "
                     + "Expect the resultProcessor to break. "

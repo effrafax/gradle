@@ -72,7 +72,7 @@ public class TestNGXmlResultAndHtmlReportIntegrationTest extends
     }
 
     def verifyTestResultWith(TestExecutionResult executionResult) {
-        executionResult.assertTestClassesExecuted("org.FailingTest", "org.PassingTest", "org.MixedMethodsTest", "org.NoOutputsTest", "org.EncodingTest")
+        executionResult.assertTestClassesExecuted("org.FailingTest", "org.PassingTest", "org.MixedMethodsTest", "org.NoOutputsTest", "org.EncodingTest", "org.ParameterizedTest")
 
         executionResult.testClass("org.MixedMethodsTest")
                 .assertTestCount(4, 2, 0)
@@ -116,6 +116,10 @@ no EOL, non-ascii char: ż
 xml entity: &amp;
 """))
                 .assertStderr(equalTo("< html allowed, cdata closing token ]]> encoded!\n"))
+
+        executionResult.testClass("org.ParameterizedTest")
+                .assertTestCount(2, 0, 0)
+                .assertTestsExecuted("parameterized1(1, 2)", "parameterized1(3, 4)")
     }
 
 
@@ -193,6 +197,31 @@ public class EncodingTest {
     @Test public void encodesAttributeValues() {
         throw new RuntimeException("html: <> cdata: ]]> non-ascii: ż");
     }
+}
+"""
+
+        file("src/test/java/org/ParameterizedTest.java") << """package org;
+
+import org.testng.annotations.*;
+import static org.testng.Assert.*;
+
+public class ParameterizedTest {
+
+    @Test(dataProvider = "1")
+	public void parameterized1(String var1, String var2) {
+        System.out.println("var1 is: " + var1);
+        System.out.println("var2 is: " + var2);
+       	assertEquals(var1, "1");
+	}
+
+	@DataProvider(name = "1")
+	public Object[][] parameterized1Provider() {
+		return new Object[][] {
+		   {"1", "2"},
+		   {"3", "4"}
+	    };
+	}
+
 }
 """
     }
