@@ -4,7 +4,8 @@
 
 ### User visible changes
 
-Faster builds, especially with hot daemon
+-Faster builds, especially with hot daemon
+-Create a property that allows turning off this feature
 
 ### Sad day cases
 
@@ -22,8 +23,9 @@ Faster builds, especially with hot daemon
 
 -Cache should use soft maps (see guava map maker)
 -Use ModuleVersionRepository
--For cache state we need to have static DependencyManagementServices. Currently all services from GlobalServicesRegistry are static in the daemon
--compatible with internal cache control dsl
+-Cache's state should be based on TopLevelProjectRegistry
+-Document the breaking changes: we no longer check local repos with every resolve. The remote repo cache may no longer expire in the middle of the build.
+-For descriptor caching we should cache states like: missing(), probablyMissing(), resolved()
 
 ### Questions
 
