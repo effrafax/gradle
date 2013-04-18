@@ -18,7 +18,6 @@ package org.gradle.integtests.resolve.caching
 
 import org.gradle.integtests.fixtures.AbstractDependencyResolutionTest
 import org.gradle.test.fixtures.ivy.IvyFileRepository
-import spock.lang.Ignore
 
 class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolutionTest {
 
@@ -116,8 +115,7 @@ class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolu
         failure.assertResolutionFailure(":impl:conf").assertHasCause("Could not find org:lib:1.0")
     }
 
-    @Ignore //trying to figure out how to cover this
-    def "snapshot versions are only cached per build"() {
+    def "snapshot artifacts are only cached per build"() {
         given:
         file("provider/build.gradle") << """
             apply plugin: 'java'
@@ -157,10 +155,6 @@ class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolu
             public String toString() { return "updated"; }
         }"""
 
-        //add new dependency
-        mavenRepo.module("org", "lib").publish()
-        file("provider/build.gradle") << "dependencies { compile 'org:lib:1.0' } "
-
         inDirectory("provider"); run "install"
 
         and:
@@ -168,12 +162,6 @@ class CachingDescriptorsInMemoryIntegrationTest extends AbstractDependencyResolu
 
         then:
         output.contains "Name: updated" //uses updated artifact
-
-        when:
-        inDirectory("consumer"); run "dependencies"
-
-        then:
-        output.contains "org:lib:1.0" //uses updated descriptor
     }
 
     def "cache expires at the end of build"() {
