@@ -16,7 +16,7 @@
 
 package org.gradle.api.internal.artifacts;
 
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.InMemoryDependencyMetadataCache;
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.memcache.InMemoryDependencyMetadataCache;
 import org.gradle.internal.service.DefaultServiceRegistry;
 
 public class DefaultTopLevelDependencyManagementServices extends DefaultServiceRegistry implements TopLevelDependencyManagementServices {
